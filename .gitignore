@@ -1,0 +1,26 @@
+# Plugin-specific
+Binaries/
+Intermediate/
+
+# Cache files
+*.VC.db
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+
+# Visual Studio / Rider
+.vs/
+.vsconfig
+*.idea/
+*.pidb
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider-specific
+.idea/
+*.iml

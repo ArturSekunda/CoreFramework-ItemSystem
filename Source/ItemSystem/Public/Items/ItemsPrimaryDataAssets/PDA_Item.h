@@ -15,7 +15,7 @@ class UItemExtension;
  * Base class for item primary data assets. You can create your own primary data asset class by inheriting from this class and adding your own properties and functions.
  * Remember! This class is responsible for NON-Editable data in runtime. Don't make mess!
  */
-UCLASS(Abstract)
+UCLASS()
 class ITEMSYSTEM_API UPDA_Item : public UPrimaryDataAsset
 {
 	GENERATED_BODY()

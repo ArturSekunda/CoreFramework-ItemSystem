@@ -71,7 +71,7 @@ UItemExtension (e.g. Equipment, Usable, Effect extensions)
 
 ## License
 
-Licensed under the **[PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)** — see [LICENSE](LICENSE) for full terms.
+Licensed under the **[PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)** - see [LICENSE](LICENSE) for full terms.
 
 In short: free to use, study, and modify for non-commercial purposes. Commercial use requires separate permission from the author.
 

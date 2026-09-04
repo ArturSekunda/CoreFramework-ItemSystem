@@ -9,14 +9,15 @@
 #include "Items/ItemsExtensions/ItemExtension.h"
 
 #include "Net/Serialization/FastArraySerializer.h"
-#include "WrapperData.generated.h"
+
+#include "ContainersSerializers.generated.h"
 
 USTRUCT(BlueprintType)
 struct ITEMSYSTEM_API FItemExtensionEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly,BlueprintReadOnly)
 	TObjectPtr<UItemExtension> ExtensionInstance;
 	
 	FItemExtensionEntry() : ExtensionInstance(nullptr) {}
@@ -29,6 +30,7 @@ struct ITEMSYSTEM_API FItemExtensionEntry : public FFastArraySerializerItem
 		{
 			ExtensionInstance->InitializeExtension(); 
 		}
+		
 	}
 	void PostReplicatedChange(const struct FItemExtensionContainerList& InArraySerializer) { }
 };
@@ -38,7 +40,7 @@ struct ITEMSYSTEM_API FItemExtensionContainerList : public FFastArraySerializer
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TArray<FItemExtensionEntry> Entries;
 	
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -53,7 +55,7 @@ struct ITEMSYSTEM_API FItemExtensionContainerList : public FFastArraySerializer
 		MarkItemDirty(NewEntry);
 	}
 
-	void RemoveExtension(UItemExtension* ExtToRemove)
+	void RemoveExtension(UExtension* ExtToRemove)
 	{
 		for (auto It = Entries.CreateIterator(); It; ++It)
 		{
@@ -62,6 +64,18 @@ struct ITEMSYSTEM_API FItemExtensionContainerList : public FFastArraySerializer
 				It.RemoveCurrent();
 				MarkArrayDirty();
 				break;
+			}
+		}
+	}
+	
+	void RemoveInvalidEntries()
+	{
+		for (int32 i = Entries.Num() - 1; i >= 0; --i)
+		{
+			if (!Entries[i].ExtensionInstance || !IsValid(Entries[i].ExtensionInstance))
+			{
+				Entries.RemoveAt(i);
+				MarkArrayDirty();
 			}
 		}
 	}
@@ -78,13 +92,13 @@ struct ITEMSYSTEM_API FInventoryExtensionEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly,BlueprintReadOnly)
 	TObjectPtr<UInventoryExtension> ExtensionInstance;
 	
 	FInventoryExtensionEntry() : ExtensionInstance(nullptr) {}
 	FInventoryExtensionEntry(UInventoryExtension* InExtension) : ExtensionInstance(InExtension) { }
 	
-	void PreReplicatedRemove(const struct FInventoryExtensionContainerList& InArraySerializer) { }
+	void PreReplicatedRemove(const struct FInventoryExtensionContainerList& InArraySerializer){ }
 	void PostReplicatedAdd(const struct FInventoryExtensionContainerList& InArraySerializer)
 	{
 		if (ExtensionInstance)
@@ -100,7 +114,7 @@ struct ITEMSYSTEM_API FInventoryExtensionContainerList : public FFastArraySerial
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TArray<FInventoryExtensionEntry> Entries;
 	
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -115,7 +129,7 @@ struct ITEMSYSTEM_API FInventoryExtensionContainerList : public FFastArraySerial
 		MarkItemDirty(NewEntry);
 	}
 
-	void RemoveExtension(UInventoryExtension* ExtToRemove)
+	void RemoveExtension(UExtension* ExtToRemove)
 	{
 		for (auto It = Entries.CreateIterator(); It; ++It)
 		{
@@ -124,6 +138,18 @@ struct ITEMSYSTEM_API FInventoryExtensionContainerList : public FFastArraySerial
 				It.RemoveCurrent();
 				MarkArrayDirty();
 				break;
+			}
+		}
+	}
+	
+	void RemoveInvalidEntries()
+	{
+		for (int32 i = Entries.Num() - 1; i >= 0; --i)
+		{
+			if (!Entries[i].ExtensionInstance || !IsValid(Entries[i].ExtensionInstance))
+			{
+				Entries.RemoveAt(i);
+				MarkArrayDirty();
 			}
 		}
 	}
@@ -140,7 +166,7 @@ struct ITEMSYSTEM_API FEquipmentExtensionEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly,BlueprintReadOnly)
 	TObjectPtr<UEquipmentExtension> ExtensionInstance;
 	
 	FEquipmentExtensionEntry() : ExtensionInstance(nullptr) {}
@@ -162,7 +188,7 @@ struct ITEMSYSTEM_API FEquipmentExtensionContainerList : public FFastArraySerial
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TArray<FEquipmentExtensionEntry> Entries;
 	
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -177,7 +203,7 @@ struct ITEMSYSTEM_API FEquipmentExtensionContainerList : public FFastArraySerial
 		MarkItemDirty(NewEntry);
 	}
 
-	void RemoveExtension(UEquipmentExtension* ExtToRemove)
+	void RemoveExtension(UExtension* ExtToRemove)
 	{
 		for (auto It = Entries.CreateIterator(); It; ++It)
 		{
@@ -186,6 +212,18 @@ struct ITEMSYSTEM_API FEquipmentExtensionContainerList : public FFastArraySerial
 				It.RemoveCurrent();
 				MarkArrayDirty();
 				break;
+			}
+		}
+	}
+	
+	void RemoveInvalidEntries()
+	{
+		for (int32 i = Entries.Num() - 1; i >= 0; --i)
+		{
+			if (!Entries[i].ExtensionInstance || !IsValid(Entries[i].ExtensionInstance))
+			{
+				Entries.RemoveAt(i);
+				MarkArrayDirty();
 			}
 		}
 	}

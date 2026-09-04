@@ -4,6 +4,7 @@
 #include "MVVM/InventoryVMManager.h"
 
 #include "Items/ItemsInstances/ItemInstance.h"
+#include "Items/ItemsPrimaryDataAssets/PDA_Item.h"
 
 #include "MVVM/ViewModels/VM_ItemBase.h"
 
@@ -46,18 +47,32 @@ void UInventoryVMManager::CreateVMItem(UItemInstance* ItemInstance)
 		// Item already exists
 		return;
 	}
-
-	// Create new VM item
-	UVM_ItemBase* NewVMItem = NewObject<UVM_ItemBase>(this);
 	
-	NewVMItem->InitializeVMItems(ItemInstance);
-	
-	AllVMItems.Add(ItemInstance->GetGuid(), NewVMItem);
-	
-	if (OnVMCreated.IsBound())
+	if (ItemInstance->GetItem_PDA())
 	{
-		OnVMCreated.Broadcast(NewVMItem);
+		UClass* VMClass = ItemInstance->GetItem_PDA()->ItemVMClass.LoadSynchronous();
+		
+		if (VMClass && VMClass->IsChildOf(UVM_ItemBase::StaticClass()))
+		{
+			UVM_ItemBase* NewVMItem = NewObject<UVM_ItemBase>(this, VMClass);
+			
+			NewVMItem->InitializeVMItems(ItemInstance);
+			
+			AllVMItems.Add(ItemInstance->GetGuid(), NewVMItem);
+			
+			if (OnVMCreated.IsBound())
+			{
+				OnVMCreated.Broadcast(NewVMItem);
+			}
+			
+			return;
+		}
+	}else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CreateVMItem: ItemInstance %s does not have a valid PDA."), *ItemInstance->GetGuid().ToString());
+		return;
 	}
+	
 }
 
 void UInventoryVMManager::RemoveVMItem(FGuid ItemGuid)

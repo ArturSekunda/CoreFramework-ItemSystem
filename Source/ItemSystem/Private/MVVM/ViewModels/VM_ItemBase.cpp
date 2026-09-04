@@ -3,13 +3,9 @@
 
 #include "MVVM/ViewModels/VM_ItemBase.h"
 
-#include "Extension/PDA_Extension.h"
-
-#include "Items/ItemsExtensions/ItemExtension.h"
-
 #include "MVVM/ViewModels/VM_ItemExtension.h"
 
-#include "Wrappers/ExtensionContainer.h"
+#include "Items/ItemsInstances/ItemInstance.h"
 
 void UVM_ItemBase::InitializeVMItems(UItemInstance* InItemInstance)
 {
@@ -17,12 +13,9 @@ void UVM_ItemBase::InitializeVMItems(UItemInstance* InItemInstance)
 	if (ItemInstance_Holder.IsValid())
 	{
 		InItemInstance->OnQuantityChanged.AddDynamic(this, &UVM_ItemBase::SetQuantity);
-		SetQuantity(ItemInstance_Holder->GetItemQuantity());
+		InItemInstance->OnItemExtensionsChanged.AddDynamic(this, &UVM_ItemBase::RefreshExtensionViewModels);
 		
-		if (UItemExtensionContainer* Container = ItemInstance_Holder->GetExtensionContainer())
-		{
-			Container->OnItemExtensionsChanged.AddDynamic(this, &UVM_ItemBase::RefreshExtensionViewModels);
-		}
+		SetQuantity(ItemInstance_Holder->GetItemQuantity());
 		
 		RefreshExtensionViewModels();
 	}
@@ -38,40 +31,47 @@ FGuid UVM_ItemBase::GetGUID() const
 	return FGuid();
 }
 
+void UVM_ItemBase::Deinitialize()
+{
+	if (ItemInstance_Holder.IsValid())
+	{
+		ItemInstance_Holder->OnQuantityChanged.RemoveDynamic(this, &UVM_ItemBase::SetQuantity);
+		
+		ItemInstance_Holder->OnItemExtensionsChanged.RemoveDynamic(this, &UVM_ItemBase::RefreshExtensionViewModels);
+	}
+}
+
 void UVM_ItemBase::RefreshExtensionViewModels()
 {
 	if (!ItemInstance_Holder.IsValid()) return;
 
 	TArray<UVM_ItemExtension*> TempExtensionVMs;
-
-	if (UItemExtensionContainer* Container = ItemInstance_Holder->GetExtensionContainer())
-	{
-		TArray<UItemExtension*> RawExtensions = Container->GetExtensions_BP();
+	
+	TArray<UExtension*> RawExtensions = ItemInstance_Holder->GetExtensions_BP_Implementation();
 		
-		for (UItemExtension* RawExtension : RawExtensions)
+		for (UExtension* RawExtension : RawExtensions)
 		{
-			if (!RawExtension) continue;
+			if (!RawExtension)
+			{
+				continue;
+			}
 
-			UClass* ResolvedVMClass = nullptr;
+			UVM_ItemExtension* NewExtVM = nullptr;
 			
-			if (UPDA_Extension* ExtensionPDA = RawExtension->GetExtensionPDA())
+			if (RawExtension->GetVM())
 			{
-				if (!ExtensionPDA->ExtensionVMClass.IsNull())
-				{
-					ResolvedVMClass = ExtensionPDA->ExtensionVMClass.LoadSynchronous();
-				}
+				NewExtVM  = Cast<UVM_ItemExtension>(RawExtension->GetVM());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[VM_ItemBase] RefreshExtensionViewModels: Extension '%s' does not have a valid VM class. Please ensure that the extension has a valid VM class set."), *RawExtension->GetName());
+				return;
 			}
 			
-			if (!ResolvedVMClass)
-			{
-				ResolvedVMClass = UVM_ItemExtension::StaticClass();
-			}
+			NewExtVM->InitializeVMExtension(RawExtension);
 			
-			UVM_ItemExtension* NewExtVM = NewObject<UVM_ItemExtension>(this, ResolvedVMClass);
-			NewExtVM->InitializeVMItemExtension(RawExtension);
 			TempExtensionVMs.Add(NewExtVM);
 		}
-	}
-	
+		
 	SetItemExtensions(TempExtensionVMs);
 }

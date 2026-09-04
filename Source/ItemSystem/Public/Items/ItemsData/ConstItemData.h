@@ -41,7 +41,6 @@ struct FConstItemAssetData
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AssetData")
 	TSoftObjectPtr<UTexture2D> ItemTexture = nullptr;
 	
-	// This's optional if you created own BP_WeaponInstance or your own UObject class based on UItemInstance. So you can leave it empty.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AssetData")
 	TSoftClassPtr<UItemInstance> ItemClass;
 	

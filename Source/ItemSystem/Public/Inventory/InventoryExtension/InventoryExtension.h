@@ -6,10 +6,10 @@
 
 #include "Extension/Extension.h"
 
-#include "Inventory/InventoryComponent.h"
-
 #include "UObject/Object.h"
 #include "InventoryExtension.generated.h"
+
+class UInventoryComponent;
 
 /**
  * 
@@ -26,16 +26,8 @@ protected:
 public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory Extension")
-	void SetOwningInventory(UInventoryComponent* InOwner) { OwningInventory = InOwner; }
+	void SetOwningInventory(UInventoryComponent* InOwner);
 	
 	UFUNCTION(BlueprintPure, Category = "Inventory Extension")
-	UInventoryComponent* GetOwningInventory() const
-	{
-		if (OwningInventory.IsValid())
-		{
-			return OwningInventory.Get();
-		}
-		
-		return nullptr;
-	}
+	UInventoryComponent* GetOwningInventory() const;
 };

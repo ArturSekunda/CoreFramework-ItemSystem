@@ -6,10 +6,10 @@
 
 #include "Extension/Extension.h"
 
-#include "Items/ItemsInstances/ItemInstance.h"
-
 #include "UObject/Object.h"
 #include "ItemExtension.generated.h"
+
+class UItemInstance;
 
 /*
  * Base class for item extensions. You can create your own item extension class by inheriting from this class and adding your own properties and functions.
@@ -24,19 +24,11 @@ protected:
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UItemInstance> OwningItem;
 	
-	public:
+public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Extension")
-	void SetOwningItem(UItemInstance* InOwner) { OwningItem = InOwner; }
+	void SetOwningItem(UItemInstance* InOwner);
 	
 	UFUNCTION(BlueprintPure, Category = "Item Extension")
-	UItemInstance* GetOwningItem() const
-	{
-		if (OwningItem.IsValid())
-		{
-			return OwningItem.Get();
-		}
-
-		return nullptr;
-	}
+	UItemInstance* GetOwningItem() const;
 };

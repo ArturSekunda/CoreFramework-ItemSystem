@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+
 #include "PDA_Equipment.generated.h"
 
 class UEquipmentExtension;

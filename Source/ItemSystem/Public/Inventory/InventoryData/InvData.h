@@ -8,27 +8,22 @@
 
 class UItemInstance;
 
-UENUM(BlueprintType)
-enum class EInventorySaveLoadResult : uint8
-{
-	Success UMETA(DisplayName = "Success"),
-	Corrupted UMETA(DisplayName = "Corrupted"),
-	Failed UMETA(DisplayName = "Failed"),
-};
-
 USTRUCT(BlueprintType)
 struct ITEMSYSTEM_API FInventoryEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TObjectPtr<UItemInstance> ItemInstance;
 	
-	UPROPERTY(BlueprintReadOnly)
-	int32 SlotIndex = -1;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	FGuid EntryGuid;
 	
-	FInventoryEntry() : ItemInstance(nullptr), SlotIndex(-1) {}
-	FInventoryEntry(UItemInstance* InItem, int32 InSlotIndex) : ItemInstance(InItem), SlotIndex(InSlotIndex) { }
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	int32 SlotIndex;
+	
+	FInventoryEntry() : ItemInstance(nullptr), EntryGuid(FGuid::NewGuid()), SlotIndex(-1) {}
+	FInventoryEntry(UItemInstance* InItem, int32 InSlotIndex, FGuid InEntryGuid = FGuid::NewGuid()) : ItemInstance(InItem), EntryGuid(InEntryGuid), SlotIndex(InSlotIndex) { }
 	
 	void PreReplicatedRemove(const struct FInventoryContainerList& InArraySerializer) { }
 	void PostReplicatedAdd(const struct FInventoryContainerList& InArraySerializer) { }
@@ -40,7 +35,7 @@ struct ITEMSYSTEM_API FInventoryContainerList : public FFastArraySerializer
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TArray<FInventoryEntry> Entries;
 	
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -48,11 +43,12 @@ struct ITEMSYSTEM_API FInventoryContainerList : public FFastArraySerializer
 		return FFastArraySerializer::FastArrayDeltaSerialize<FInventoryEntry, FInventoryContainerList>(Entries, DeltaParms, *this);
 	}
 	
-	void AddEntry(UItemInstance* NewItem, int32 SlotIndex)
+	void AddEntry(UItemInstance* NewItem, int32 SlotIndex, FGuid EntryGuid = FGuid::NewGuid())
 	{
 		FInventoryEntry& NewEntry = Entries.AddDefaulted_GetRef();
 		NewEntry.ItemInstance = NewItem;
 		NewEntry.SlotIndex = SlotIndex;
+		NewEntry.EntryGuid = EntryGuid;
 		MarkItemDirty(NewEntry);
 	}
 

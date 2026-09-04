@@ -3,14 +3,9 @@
 
 #include "Items/ItemsActors/ItemActor.h"
 
-#include "Engine/ActorChannel.h"
-
 #include "Items/ItemsInstances/ItemInstance.h"
 
 #include "Net/UnrealNetwork.h"
-
-#include "Wrappers/ExtensionContainer.h"
-#include "Wrappers/WrapperData.h"
 
 
 // Sets default values
@@ -20,6 +15,7 @@ AItemActor::AItemActor()
 	PrimaryActorTick.bCanEverTick = false;
 	
 	bReplicates = true;
+	bReplicateUsingRegisteredSubObjectList = true;
 	AActor::SetReplicateMovement(true); 
 }
 
@@ -28,6 +24,24 @@ void AItemActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+void AItemActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (HasAuthority() && IsValid(ItemInstance))
+	{
+		RemoveReplicatedSubObject(ItemInstance);
+		
+		for (const auto& Element : ItemInstance->Execute_GetExtensions_BP(ItemInstance))
+		{
+			if (IsValid(Element))
+			{
+				RemoveReplicatedSubObject(Element);
+			}
+		}
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 // Called every frame
@@ -43,31 +57,6 @@ void AItemActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	DOREPLIFETIME(AItemActor, ItemInstance);
 }
 
-bool AItemActor::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
-{
-	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
-
-	if (IsValid(ItemInstance))
-	{
-		WroteSomething |= Channel->ReplicateSubobject(ItemInstance.Get(), *Bunch, *RepFlags);
-
-		if (UItemExtensionContainer* Container = ItemInstance->GetExtensionContainer())
-		{
-			WroteSomething |= Channel->ReplicateSubobject(Container, *Bunch, *RepFlags);
-
-			for (const FItemExtensionEntry& Entry : Container->GetExtensionList().Entries)
-			{
-				if (Entry.ExtensionInstance)
-				{
-					WroteSomething |= Channel->ReplicateSubobject(Entry.ExtensionInstance.Get(), *Bunch, *RepFlags);
-				}
-			}
-		}
-	}
-
-	return WroteSomething;
-}
-
 UItemInstance* AItemActor::GetItemInstance() const
 {
 	if (IsValid(ItemInstance))
@@ -78,8 +67,23 @@ UItemInstance* AItemActor::GetItemInstance() const
 	return nullptr;
 }
 
-void AItemActor::InitializeItem(UItemInstance* InItemInstance)
+void AItemActor::InitializeItemActor(UItemInstance* InItemInstance)
 {
+	if (!HasAuthority() || !IsValid(InItemInstance))
+	{
+		return;
+	}
+	
+	AddReplicatedSubObject(InItemInstance);
+
+	for (const auto& Element : InItemInstance->Execute_GetExtensions_BP(InItemInstance))
+	{
+		if (IsValid(Element))
+		{
+			AddReplicatedSubObject(Element);
+		}
+	}
+	
 	ItemInstance = InItemInstance;
 }
 

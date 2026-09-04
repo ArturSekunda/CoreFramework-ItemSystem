@@ -5,8 +5,6 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 
-#include "Extension/PDA_Extension.h"
-
 #include "PDA_Inventory.generated.h"
 
 class UInventoryExtension;

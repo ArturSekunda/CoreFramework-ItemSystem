@@ -24,13 +24,5 @@ public:
 	void SetOwningEquipmentComponent(UEquipmentComponent* InOwner);
 	
 	UFUNCTION(BlueprintPure, Category = "Equipment Extension")
-	UEquipmentComponent* GetOwningEquipmentComponent() const
-	{
-		if (OwningEquipmentComponent.IsValid())
-		{
-			return OwningEquipmentComponent.Get();
-		}
-		
-		return nullptr;
-	}
+	UEquipmentComponent* GetOwningEquipmentComponent() const;
 };

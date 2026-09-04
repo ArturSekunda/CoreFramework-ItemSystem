@@ -8,3 +8,13 @@ void UEquipmentExtension::SetOwningEquipmentComponent(UEquipmentComponent* InOwn
 {
 	OwningEquipmentComponent = InOwner;
 }
+
+UEquipmentComponent* UEquipmentExtension::GetOwningEquipmentComponent() const
+{
+	if (OwningEquipmentComponent.IsValid())
+	{
+		return OwningEquipmentComponent.Get();
+	}
+		
+	return nullptr;
+}

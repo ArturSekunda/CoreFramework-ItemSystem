@@ -13,7 +13,7 @@ class UItemInstance;
 /**
  * 
  */
-UCLASS(Abstract)
+UCLASS()
 class ITEMSYSTEM_API UVM_ItemBase : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -43,6 +43,8 @@ public:
 	}
 	
 	int32 GetQuantity() const { return Quantity; }
+	
+	virtual void Deinitialize();
 	
 	UFUNCTION(BlueprintCallable, Category = "Item MVVM | Extensions")
 	void SetItemExtensions(const TArray<UVM_ItemExtension*>& NewExtensions)

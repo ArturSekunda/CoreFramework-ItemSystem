@@ -28,6 +28,13 @@ void AItemActor::BeginPlay()
 
 void AItemActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	DeinitializeItemActor();
+	
+	Super::EndPlay(EndPlayReason);
+}
+
+void AItemActor::DeinitializeItemActor()
+{
 	if (HasAuthority() && IsValid(ItemInstance))
 	{
 		RemoveReplicatedSubObject(ItemInstance);
@@ -40,8 +47,6 @@ void AItemActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 			}
 		}
 	}
-	
-	Super::EndPlay(EndPlayReason);
 }
 
 // Called every frame

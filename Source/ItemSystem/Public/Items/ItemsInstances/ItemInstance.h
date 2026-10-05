@@ -17,7 +17,7 @@ class UItemExtensionContainer;
 class UPDA_Upgrade;
 class UPDA_Item;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQuantityChangedDelegate, int32, NewQuantity);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQuantityChangedDelegate, int32, NewQuantity, FGuid, ItemGuid);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnItemExtensionsChangedDelegate);
 /**
  * Base class for item instances. You can create your own item instance class by inheriting from this class and adding your own properties and functions.
@@ -136,11 +136,17 @@ public: // Getters & Setters
 	FText GetItemName() const;
 	
 	UFUNCTION(BlueprintPure, Category = "Item | Getter")
+	FText GetItemDescription() const;
+	
+	UFUNCTION(BlueprintPure, Category = "Item | Getter")
 	bool GetIsStackable() const;
 	
 	// Returns all category/type tags for this item (e.g. Item.Category.Weapon). Hierarchical matching via HasTag().
 	UFUNCTION(BlueprintPure, Category = "Item | Getter")
 	FGameplayTagContainer GetItemCategories() const;
+	
+	UFUNCTION(BlueprintPure, Category = "Item | Getter")
+	void GetItemCategoriesAsFText(TArray<FText>& OutCategoriesAsText) const;
 	
 
 };

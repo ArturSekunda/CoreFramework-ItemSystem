@@ -7,6 +7,8 @@
 
 #include "Items/ItemsData/ConstItemData.h"
 
+#include "Settings/CoreFramework_ItemSystem.h"
+
 #include "PDA_Item.generated.h"
 
 class UVM_ItemBase;
@@ -22,7 +24,7 @@ class ITEMSYSTEM_API UPDA_Item : public UPrimaryDataAsset
 	
 	public:
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Instanced, Category = "Item Data | Default Extensions")
+	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category = "Item Data | Default Extensions")
 	TArray<TObjectPtr<UItemExtension>> DefaultExtensions;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Data | MVVM")
@@ -30,6 +32,19 @@ class ITEMSYSTEM_API UPDA_Item : public UPrimaryDataAsset
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FConstItemBaseData ItemBaseData = FConstItemBaseData();
+	
+	
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override
+	{
+		const UCoreFramework_ItemSystem* Settings = GetDefault<UCoreFramework_ItemSystem>();
+		
+		if (Settings)
+		{
+			return FPrimaryAssetId(Settings->DefaultPrimaryAssetIdItemType, GetFName());
+		}
+		
+		return FPrimaryAssetId("Item", GetFName());
+	}
 	
 	
 	

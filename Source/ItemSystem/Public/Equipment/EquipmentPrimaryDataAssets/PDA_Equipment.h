@@ -20,6 +20,6 @@ class ITEMSYSTEM_API UPDA_Equipment : public UPrimaryDataAsset
 	
 public:
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Instanced, Category = "Equipment Data | Default Extensions")
+	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category = "Equipment Data | Default Extensions")
 	TArray<TObjectPtr<UEquipmentExtension>> DefaultExtensions;
 };

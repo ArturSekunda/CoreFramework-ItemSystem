@@ -5,7 +5,10 @@
 
 #include "MVVM/ViewModels/VM_ItemExtension.h"
 
+#include "GameplayTagContainer.h"
+
 #include "Items/ItemsInstances/ItemInstance.h"
+#include "Items/ItemsPrimaryDataAssets/PDA_Item.h"
 
 void UVM_ItemBase::InitializeVMItems(UItemInstance* InItemInstance)
 {
@@ -15,9 +18,38 @@ void UVM_ItemBase::InitializeVMItems(UItemInstance* InItemInstance)
 		InItemInstance->OnQuantityChanged.AddDynamic(this, &UVM_ItemBase::SetQuantity);
 		InItemInstance->OnItemExtensionsChanged.AddDynamic(this, &UVM_ItemBase::RefreshExtensionViewModels);
 		
-		SetQuantity(ItemInstance_Holder->GetItemQuantity());
+		SetQuantity(ItemInstance_Holder->GetItemQuantity(), ItemInstance_Holder->GetGuid());
+		SetItemCategories();
+		SetItemDescription(ItemInstance_Holder->GetItemDescription());
+		SetItemName(ItemInstance_Holder->GetItemName());
+		SetItemIcon(ItemInstance_Holder->GetItem_PDA() ? ItemInstance_Holder->GetItem_PDA()->ItemBaseData.ItemAssetData.ItemIcon.LoadSynchronous() : nullptr);
+		SetMaxStackSize(ItemInstance_Holder->GetMaxStack());
 		
 		RefreshExtensionViewModels();
+	}
+}
+
+FGameplayTagContainer UVM_ItemBase::GetItemCategories() const
+{
+	if (ItemInstance_Holder.IsValid())
+	{
+		return ItemInstance_Holder->GetItemCategories();
+	}
+	
+	return FGameplayTagContainer();
+}
+
+void UVM_ItemBase::SetItemCategories()
+{
+	if (ItemInstance_Holder.IsValid())
+	{
+		TArray<FText> CategoriesAsText;
+		ItemInstance_Holder->GetItemCategoriesAsFText(CategoriesAsText);
+		UE_MVVM_SET_PROPERTY_VALUE(ItemCategoriesAsFText, CategoriesAsText);
+	}
+	else
+	{
+		UE_MVVM_SET_PROPERTY_VALUE(ItemCategoriesAsFText, TArray<FText>());
 	}
 }
 
@@ -60,7 +92,7 @@ void UVM_ItemBase::RefreshExtensionViewModels()
 			
 			if (RawExtension->GetVM())
 			{
-				NewExtVM  = Cast<UVM_ItemExtension>(RawExtension->GetVM());
+				NewExtVM  = NewObject<UVM_ItemExtension>(this, RawExtension->GetVM());
 			}
 			else
 			{

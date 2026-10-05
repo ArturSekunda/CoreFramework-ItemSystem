@@ -28,7 +28,8 @@ public class ItemSystem : ModuleRules
 				"ModelViewViewModel",
 				"SlateMVVM",
 				"GameplayTags",
-				"NetCore"
+				"NetCore",
+				"DeveloperSettings"
 			}
 			);
 			

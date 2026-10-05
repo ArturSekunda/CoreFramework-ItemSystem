@@ -145,7 +145,7 @@ void UItemInstance::LoadFromSaveData_Implementation(const FItemInstanceSaveData&
 		}
 		
 		// Add default extensions from PDA if they are not already present
-		for (UItemExtension* Extension : Item_PDA->DefaultExtensions)
+		for (TObjectPtr<UItemExtension> Extension : Item_PDA->DefaultExtensions)
 		{
 			if (!Extension)
 			{
@@ -173,10 +173,11 @@ void UItemInstance::LoadFromSaveData_Implementation(const FItemInstanceSaveData&
 
 void UItemInstance::PrepareDefaultExtensions_Implementation()
 {
-	for (UItemExtension* DefaultExtension : Item_PDA->DefaultExtensions)
+	for (TObjectPtr<UItemExtension> DefaultExtension : Item_PDA->DefaultExtensions)
 	{
 		if (DefaultExtension)
 		{
+			
 			UItemExtension* CopiedExt = DuplicateObject<UItemExtension>(DefaultExtension, this);
 			
 			if (!CopiedExt)
@@ -322,7 +323,7 @@ void UItemInstance::SetItemQuantity(int32 NewQuantity)
 	
 	if (OnQuantityChanged.IsBound())
 	{
-		OnQuantityChanged.Broadcast(NewQuantity);
+		OnQuantityChanged.Broadcast(NewQuantity, GetGuid());
 	}
 }
 
@@ -351,6 +352,16 @@ FText UItemInstance::GetItemName() const
 	return FText::Format(NSLOCTEXT("ItemSystem", "ItemInstance_GetItemName_NoPDA", "No PDA for {0}"), FText::FromString(GetName()));
 }
 
+FText UItemInstance::GetItemDescription() const
+{
+	if (Item_PDA)
+	{
+		return Item_PDA->ItemBaseData.ItemDescription;
+	}
+	
+	return FText::Format(NSLOCTEXT("ItemSystem", "ItemInstance_GetItemDescription_NoPDA", "No PDA for {0}"), FText::FromString(GetName()));
+}
+
 bool UItemInstance::GetIsStackable() const
 {
 	if (Item_PDA)
@@ -370,3 +381,23 @@ FGameplayTagContainer UItemInstance::GetItemCategories() const
 	
 	return FGameplayTagContainer();
 }
+
+void UItemInstance::GetItemCategoriesAsFText(TArray<FText>& OutCategoriesAsText) const
+{
+	if (Item_PDA)
+	{
+		for (const FGameplayTag& CategoryTag : Item_PDA->ItemBaseData.ItemTags)
+		{
+			if (Item_PDA->ItemBaseData.TagDisplayNames.Contains(CategoryTag))
+			{
+				OutCategoriesAsText.Add(Item_PDA->ItemBaseData.TagDisplayNames[CategoryTag]);
+			}
+			else
+			{
+				OutCategoriesAsText.Add(FText::FromName(CategoryTag.GetTagName()));
+			}
+		}
+	}
+}
+
+

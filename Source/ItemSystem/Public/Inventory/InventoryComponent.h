@@ -61,6 +61,10 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Inventory | Save")
 	ESaveLoadResult LoadFromSaveData(const FInventorySaveData& InSaveData);
 	
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory | List Of Items")
+	void GetInventoryItems(TArray<UItemInstance*>& OutItems);
+	
 	/*
 	 *  There's only logic for AddReplicatedSubObject().
 	 *  Use this before adding the item to the inventory, because it will be replicated to the clients.

@@ -18,8 +18,18 @@ protected:
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly , Category = "Item Actor")
+	UPROPERTY(ReplicatedUsing=OnRep_ItemInstance, VisibleAnywhere, BlueprintReadOnly , Category = "Item Actor")
 	TObjectPtr<UItemInstance> ItemInstance;
+	
+	/*
+	 * Called when the ItemInstance is replicated to clients. 
+	 * Override this function in derived classes to handle any additional logic when the ItemInstance is updated.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Item Actor")
+	virtual void OnRep_ItemInstance() { }
+	
+	UFUNCTION(BlueprintCallable, Category = "Item Actor")
+	virtual void DeinitializeItemActor();
 	
 public:
 	
@@ -35,6 +45,6 @@ public:
 	UItemInstance* GetItemInstance() const;
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Actor")
-	void InitializeItemActor(UItemInstance* InItemInstance);
+	virtual void InitializeItemActor(UItemInstance* InItemInstance);
 	
 };

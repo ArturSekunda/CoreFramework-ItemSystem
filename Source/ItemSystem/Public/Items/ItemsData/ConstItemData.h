@@ -39,7 +39,7 @@ struct FConstItemAssetData
 	TSoftClassPtr<AItemActor> ItemActorClass = AItemActor::StaticClass();
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AssetData")
-	TSoftObjectPtr<UTexture2D> ItemTexture = nullptr;
+	TSoftObjectPtr<UTexture2D> ItemIcon = nullptr;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AssetData")
 	TSoftClassPtr<UItemInstance> ItemClass;
@@ -65,6 +65,9 @@ struct FConstItemBaseData
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Setup | BaseData",meta=(EditCondition="bCanBeStacked"))
 	int32 MaxStackCount = 1;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Setup | BaseData")
+	TMap<FGameplayTag,FText> TagDisplayNames;
 	
 	/*
 	 * All information about item visuality, actor class, texture, and item instance class. 

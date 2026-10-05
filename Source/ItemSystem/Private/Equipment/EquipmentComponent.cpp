@@ -60,7 +60,7 @@ void UEquipmentComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePrope
 
 void UEquipmentComponent::PrepareDefaultExtensions_Implementation()
 {
-	for (UEquipmentExtension* DefaultExtension : Equipment_PDA->DefaultExtensions)
+	for (TObjectPtr<UEquipmentExtension> DefaultExtension : Equipment_PDA->DefaultExtensions)
 	{
 		if (DefaultExtension)
 		{

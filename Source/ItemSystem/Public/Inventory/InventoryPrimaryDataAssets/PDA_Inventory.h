@@ -19,6 +19,6 @@ class ITEMSYSTEM_API UPDA_Inventory : public UPrimaryDataAsset
 	
 public: 
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Instanced, Category = "Inventory Data | Default Extensions")
+	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category = "Inventory Data | Default Extensions")
 	TArray<TObjectPtr<UInventoryExtension>> DefaultExtensions;
 };

@@ -33,7 +33,10 @@ void UInventoryVMManager::TickComponent(float DeltaTime, ELevelTick TickType,
 
 UVM_ItemBase* UInventoryVMManager::GetVMItemByGuid(FGuid ItemGuid) const
 {
-	if (const TObjectPtr<UVM_ItemBase>* Found = AllVMItems.Find(ItemGuid))
+	if (const TObjectPtr<UVM_ItemBase>* Found = AllVMItems.FindByPredicate([ItemGuid](const UVM_ItemBase* VMItem)
+	{
+		return VMItem && VMItem->GetGUID() == ItemGuid;
+	}))
 	{
 		return *Found;
 	}
@@ -42,7 +45,10 @@ UVM_ItemBase* UInventoryVMManager::GetVMItemByGuid(FGuid ItemGuid) const
 
 void UInventoryVMManager::CreateVMItem(UItemInstance* ItemInstance)
 {
-	if (AllVMItems.Contains(ItemInstance->GetGuid()))
+	if (AllVMItems.ContainsByPredicate([ItemInstance](const UVM_ItemBase* VMItem)
+	{
+		return VMItem && VMItem->GetGUID() == ItemInstance->GetGuid();
+	}))
 	{
 		// Item already exists
 		return;
@@ -58,7 +64,7 @@ void UInventoryVMManager::CreateVMItem(UItemInstance* ItemInstance)
 			
 			NewVMItem->InitializeVMItems(ItemInstance);
 			
-			AllVMItems.Add(ItemInstance->GetGuid(), NewVMItem);
+			AllVMItems.Add(NewVMItem);
 			
 			if (OnVMCreated.IsBound())
 			{
@@ -77,17 +83,27 @@ void UInventoryVMManager::CreateVMItem(UItemInstance* ItemInstance)
 
 void UInventoryVMManager::RemoveVMItem(FGuid ItemGuid)
 {
-	if (AllVMItems.Contains(ItemGuid))
+
+	TObjectPtr<UVM_ItemBase>* VMItem = AllVMItems.FindByPredicate([ItemGuid](const UVM_ItemBase* Item)
 	{
-		UVM_ItemBase* VMItem = AllVMItems[ItemGuid];
-		
-		if (OnVMRemoved.IsBound())
-		{
-			OnVMRemoved.Broadcast(VMItem);
-		}
-		
-		AllVMItems.Remove(ItemGuid);
+		return Item && Item->GetGUID() == ItemGuid;
+	});
+	
+	if (!VMItem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RemoveVMItem: No VMItem found with GUID %s."), *ItemGuid.ToString());
+		return;
 	}
+		
+	if (OnVMRemoved.IsBound())
+	{
+		OnVMRemoved.Broadcast(*VMItem);
+	}
+		
+	VMItem->Get()->Deinitialize();
+		
+	AllVMItems.Remove(*VMItem);
+	
 }
 
 void UInventoryVMManager::ClearVMData()
@@ -95,6 +111,14 @@ void UInventoryVMManager::ClearVMData()
 	if (OnVMDataDeleted.IsBound())
 	{
 		OnVMDataDeleted.Broadcast();
+	}
+
+	for (const auto& Element : AllVMItems)
+	{
+		if (Element)
+		{
+			Element->Deinitialize();
+		}
 	}
 		
 	AllVMItems.Empty();

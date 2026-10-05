@@ -23,7 +23,7 @@ class ITEMSYSTEM_API UInventoryVMManager : public UActorComponent
 protected:
 	
 	UPROPERTY(VisibleAnywhere, Category = "MVVM")
-	TMap<FGuid,TObjectPtr<UVM_ItemBase>> AllVMItems;
+	TArray<TObjectPtr<UVM_ItemBase>> AllVMItems;
 	
 	virtual void BeginPlay() override;
 

@@ -145,7 +145,7 @@ UItemInstance* UItemFactorySubsystem::CreateItemInstanceFromPDAPathName(FString 
 	return CreateItemInstanceInternal(ItemPDA, Outer);
 }
 
-void UItemFactorySubsystem::SpawnItemActor(TSoftObjectPtr<UPDA_Item> SoftPDA, FVector Location, UObject* Outer, int32 Quantity)
+void UItemFactorySubsystem::SpawnItemActor(TSoftObjectPtr<UPDA_Item> SoftPDA, FVector Location, int32 Quantity)
 {
 	
 	if (!GetWorld()->GetAuthGameMode())
@@ -172,7 +172,7 @@ void UItemFactorySubsystem::SpawnItemActor(TSoftObjectPtr<UPDA_Item> SoftPDA, FV
 		return;
 	}
 
-	UItemInstance* ItemInstance = CreateItemInstanceInternal(ItemPDA, Outer);
+	UItemInstance* ItemInstance = CreateItemInstanceInternal(ItemPDA, GetTransientPackage());
 	if (!ItemInstance)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[ItemFactory] Failed to create item instance for PDA: %s"),

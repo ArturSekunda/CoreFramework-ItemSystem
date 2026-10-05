@@ -33,19 +33,13 @@ class ITEMSYSTEM_API UExtension : public UObject
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Extension | MVVM")
 	TSubclassOf<UVM_Extension> VM_ExtensionClass;
 	
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Extension | MVVM")
-	TObjectPtr<UVM_Extension> VM_Instance;
-	
 public:
+	
+	virtual bool IsSupportedForNetworking() const override { return true; }
 	
 	void InitializeExtension()
 	{
 		if (bIsInitialized) return;
-		
-		if (VM_ExtensionClass != nullptr)
-		{
-			VM_Instance = NewObject<UVM_Extension>(this, VM_ExtensionClass);
-		}
 
 		bIsInitialized = true;
 		
@@ -58,7 +52,7 @@ public:
 		return GetOuter() ? GetOuter()->GetWorld() : nullptr;
 	}
 	
-	TObjectPtr<UVM_Extension> GetVM() const { return VM_Instance; }
+	const TSubclassOf<UVM_Extension>& GetVM() const { return VM_ExtensionClass; }
 	
 	UFUNCTION(BlueprintNativeEvent, Category= "Extension | Save")
 	void GetSaveData(FSaveExtensionData& OutData);

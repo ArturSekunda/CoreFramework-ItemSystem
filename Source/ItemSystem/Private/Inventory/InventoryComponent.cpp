@@ -62,6 +62,20 @@ void UInventoryComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePrope
 	
 }
 
+void UInventoryComponent::GetInventoryItems(TArray<UItemInstance*>& OutItems)
+{
+	
+	OutItems.Empty();
+	
+	for (const FInventoryEntry& Entry : InventoryContainer.Entries)
+	{
+		if (Entry.ItemInstance)
+		{
+			OutItems.Add(Entry.ItemInstance);
+		}
+	}
+}
+
 void UInventoryComponent::ReplicateItemAndExtensions(TObjectPtr<UItemInstance>& InItemInstance)
 {
 	AddReplicatedSubObject(InItemInstance);
@@ -91,7 +105,7 @@ void UInventoryComponent::RemoveReplicatedItemAndExtensions(TObjectPtr<UItemInst
 
 void UInventoryComponent::PrepareDefaultExtensions_Implementation()
 {
-	for (UInventoryExtension* DefaultExtension : Inventory_PDA->DefaultExtensions)
+	for (TObjectPtr<UInventoryExtension> DefaultExtension : Inventory_PDA->DefaultExtensions)
 	{
 		if (DefaultExtension)
 		{

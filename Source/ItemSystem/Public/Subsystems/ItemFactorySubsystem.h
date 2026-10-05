@@ -33,7 +33,7 @@ public:
 	UItemInstance* CreateItemInstanceFromPDAPathName(FString PDAPath, UObject* Outer);
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Factory",meta = (DisplayName = "Spawn Item Actor"))
-	void SpawnItemActor(TSoftObjectPtr<UPDA_Item> SoftPDA, FVector Location, UObject* Outer, int32 Quantity);
+	void SpawnItemActor(TSoftObjectPtr<UPDA_Item> SoftPDA, FVector Location, int32 Quantity);
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Factory",meta = (DisplayName = "Spawn Item Actor (from Instance)"))
 	void SpawnItemActorFromInstance(UItemInstance* ItemInstance, FVector Location, int32 Quantity);

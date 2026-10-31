@@ -71,10 +71,17 @@ void UItemInstance::PostDuplicate(EDuplicateMode::Type DuplicateMode)
 			Entry.ExtensionInstance->SetOwningItem(this);
 		}
 	}
+	
+	if (DuplicateMode == EDuplicateMode::Normal)
+	{
+		Guid = FGuid::NewGuid();
+	}
 }
 
 void UItemInstance::GetSaveData_Implementation(FItemInstanceSaveData& OutSaveData) const
 {
+	OutSaveData = FItemInstanceSaveData();
+	
 	OutSaveData.ItemPDAPath = Item_PDA.GetPathName();
 	OutSaveData.Guid = Guid;
 	OutSaveData.EditableBaseData = EditableBaseData;
@@ -114,21 +121,17 @@ void UItemInstance::LoadFromSaveData_Implementation(const FItemInstanceSaveData&
 			return;
 		}
 		
-		Item_PDA = LoadedPDA;
+		/*
+		 * Local variables to hold extensions to load from save data and default extensions from PDA.
+		 */
 		
-		Guid = InSaveData.Guid;
+		TArray<UExtension*> ExtensionsToLoad;
 		
-		EditableBaseData = InSaveData.EditableBaseData;
+		TArray<UExtension*> DefaultExtensionsToLoad;
 		
 		// Add extensions from save data
 		for (const FSaveExtensionData& ExtensionData : InSaveData.ExtensionsData)
 		{
-			if (!ExtensionData.ExtensionClass.IsValid())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Invalid Extension Class in Save Data"));
-				continue;
-			}
-			
 			UClass* ExtensionClass = ExtensionData.ExtensionClass.TryLoadClass<UExtension>();
 			
 			if (!ExtensionClass)
@@ -139,34 +142,67 @@ void UItemInstance::LoadFromSaveData_Implementation(const FItemInstanceSaveData&
 			
 			UExtension* NewExtension = NewObject<UExtension>(this, ExtensionClass);
 			
-			NewExtension->LoadFromSaveData_Implementation(ExtensionData);
+			if (!NewExtension)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Failed to create new extension: %s"), *ExtensionClass->GetName());
+				continue;
+			}
 			
-			Execute_AddExtensionInstance(this, NewExtension);
+			NewExtension->LoadFromSaveData(ExtensionData);
+			
+			ExtensionsToLoad.Add(NewExtension);
 		}
 		
 		// Add default extensions from PDA if they are not already present
-		for (TObjectPtr<UItemExtension> Extension : Item_PDA->DefaultExtensions)
+		for (UItemExtension* Extension : LoadedPDA->DefaultExtensions)
 		{
 			if (!Extension)
 			{
 				continue;
 			}
 			
-			// Check if the extension is already present in the ExtensionSerializer
-			if (Execute_FindExtension(this, Extension->GetClass()))
-			{
-				continue;
-			}
-			
 			UItemExtension* CopiedExtension = DuplicateObject<UItemExtension>(Extension, this);
-			
-			Execute_AddExtensionInstance(this, CopiedExtension);
+			DefaultExtensionsToLoad.Add(CopiedExtension);
+		}
+		
+		Item_PDA = LoadedPDA;
+		
+		Guid = InSaveData.Guid;
+		
+		EditableBaseData = InSaveData.EditableBaseData;
+		
+		// Remove all existing extensions before loading new ones
+		if (!ExtensionSerializer.Entries.IsEmpty())
+		{
+			Execute_RemoveAllExtensions(this);
+		}
+		
+		if (!ExtensionsToLoad.IsEmpty())
+		{
+			for (UExtension* Extension : ExtensionsToLoad)
+			{
+				Execute_AddExtensionInstance(this, Extension);
+			}
+		}
+		
+		if (!DefaultExtensionsToLoad.IsEmpty())
+		{
+			for (UExtension* Extension : DefaultExtensionsToLoad)
+			{
+				// Check if the extension is already present in the ExtensionSerializer
+				if (Execute_FindExtension(this, Extension->GetClass()))
+				{
+					continue;
+				}
+				
+				Execute_AddExtensionInstance(this, Extension);
+			}
 		}
 		
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ItemFactorySubsystem not found"));
+		UE_LOG(LogTemp, Warning, TEXT("[ItemInstance] ItemFactorySubsystem not found"));;
 		return;
 	}
 }
@@ -200,7 +236,10 @@ bool UItemInstance::AddExtensionInstance_Implementation(UExtension* NewExtension
 	
 	for (const FItemExtensionEntry& Entry : ExtensionSerializer.Entries)
 	{
-		if (Entry.ExtensionInstance == NewExtension) return false;
+		if (Entry.ExtensionInstance == NewExtension)
+		{
+			return false;
+		}
 	}
 	UItemExtension* NewExtensionInstance = Cast<UItemExtension>(NewExtension);
 	
@@ -386,11 +425,19 @@ void UItemInstance::GetItemCategoriesAsFText(TArray<FText>& OutCategoriesAsText)
 {
 	if (Item_PDA)
 	{
+		const UCoreFramework_ItemSystem* Settings = GetDefault<UCoreFramework_ItemSystem>();
+		
+		if (!Settings)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UItemInstance::GetItemCategoriesAsFText: Failed to get CoreFramework_ItemSystem settings"));
+			return;
+		}
+		
 		for (const FGameplayTag& CategoryTag : Item_PDA->ItemBaseData.ItemTags)
 		{
-			if (Item_PDA->ItemBaseData.TagDisplayNames.Contains(CategoryTag))
+			if (Settings->TagDisplayNames.Contains(CategoryTag))
 			{
-				OutCategoriesAsText.Add(Item_PDA->ItemBaseData.TagDisplayNames[CategoryTag]);
+				OutCategoriesAsText.Add(Settings->TagDisplayNames[CategoryTag]);
 			}
 			else
 			{

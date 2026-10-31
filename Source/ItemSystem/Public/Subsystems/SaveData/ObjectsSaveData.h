@@ -1,8 +1,12 @@
-﻿#pragma once
+﻿// CoreFramework Item System. Copyright Artur "Darkowy" Sekunda. All Rights Reserved.
+
+#pragma once
 
 #include "CoreMinimal.h"
 
 #include "Items/ItemsData/EditableItemData.h"
+
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
 
 #include "objectsSaveData.generated.h"
 

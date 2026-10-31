@@ -79,7 +79,7 @@ void UVM_ItemBase::RefreshExtensionViewModels()
 
 	TArray<UVM_ItemExtension*> TempExtensionVMs;
 	
-	TArray<UExtension*> RawExtensions = ItemInstance_Holder->GetExtensions_BP_Implementation();
+	TArray<UExtension*> RawExtensions = ItemInstance_Holder->Execute_GetExtensions_BP(ItemInstance_Holder.Get());
 		
 		for (UExtension* RawExtension : RawExtensions)
 		{

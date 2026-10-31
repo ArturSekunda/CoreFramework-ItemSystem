@@ -64,6 +64,12 @@ struct ITEMSYSTEM_API FInventoryContainerList : public FFastArraySerializer
 			}
 		}
 	}
+	
+	void RemoveAllEntries()
+	{
+		Entries.Empty();
+		MarkArrayDirty();
+	}
 };
 
 template<>

@@ -69,13 +69,13 @@ public:
 	 *  There's only logic for AddReplicatedSubObject().
 	 *  Use this before adding the item to the inventory, because it will be replicated to the clients.
 	 */
-	virtual void ReplicateItemAndExtensions(TObjectPtr<UItemInstance>& InItemInstance);
+	virtual void ReplicateItemAndExtensions(UItemInstance* InItemInstance);
 	
 	/*
 	 *  There's only logic for RemoveReplicatedSubObject().
 	 *  Use this before removing the item from the inventory, because it will be replicated to the clients.
 	 */
-	virtual void RemoveReplicatedItemAndExtensions(TObjectPtr<UItemInstance>& InItemInstance);
+	virtual void RemoveReplicatedItemAndExtensions(UItemInstance* InItemInstance);
 	
 public: // Delegates
 	

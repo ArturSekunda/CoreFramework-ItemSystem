@@ -1,8 +1,9 @@
-﻿// 
+﻿// CoreFramework Item System. Copyright Artur "Darkowy" Sekunda. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Engine/DeveloperSettings.h"
 #include "CoreFramework_ItemSystem.generated.h"
 
@@ -21,4 +22,10 @@ public:
 	 */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	FName DefaultPrimaryAssetIdItemType;
+	
+	/**
+	 * A map of gameplay tags to their display names.
+	 */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Settings | Item Setup")
+	TMap<FGameplayTag,FText> TagDisplayNames;
 };

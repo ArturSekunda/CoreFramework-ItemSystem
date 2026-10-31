@@ -14,6 +14,9 @@
 class UPDA_Equipment;
 class UEquipmentExtensionContainer;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEquipmentLoading, ESaveLoadResult, Result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEquipmentSaving, ESaveLoadResult, Result);
+
 
 UCLASS(Abstract, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ITEMSYSTEM_API UEquipmentComponent : public UActorComponent, public IExtensionContainer
@@ -42,12 +45,19 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Equipment")
 	UPDA_Equipment* GetEquipmentPDA() const { return Equipment_PDA; }
 	
-	UFUNCTION(BlueprintNativeEvent, Category = "Inventory | Save")
-	void GetSaveData(FEquipmentSaveData& OutSaveData) const;
+	UFUNCTION(BlueprintNativeEvent, Category = "Equipment | Save")
+	ESaveLoadResult GetSaveData(FEquipmentSaveData& OutSaveData) const;
 	
-	UFUNCTION(BlueprintNativeEvent, Category = "Inventory | Save")
-	void LoadFromSaveData(const FEquipmentSaveData& InSaveData);
+	UFUNCTION(BlueprintNativeEvent, Category = "Equipment | Save")
+	ESaveLoadResult LoadFromSaveData(const FEquipmentSaveData& InSaveData);
 	
+public: // Delegates
+	
+	UPROPERTY(BlueprintAssignable, Category = "Equipment | Delegates")
+	FOnEquipmentLoading OnEquipmentLoading;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Equipment | Delegates")
+	FOnEquipmentSaving OnEquipmentSaving;
 	
 public: // IExtensionContainer interface
 	

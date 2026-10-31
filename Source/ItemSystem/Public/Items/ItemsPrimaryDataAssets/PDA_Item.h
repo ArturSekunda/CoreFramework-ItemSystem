@@ -27,7 +27,7 @@ class ITEMSYSTEM_API UPDA_Item : public UPrimaryDataAsset
 	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category = "Item Data | Default Extensions")
 	TArray<TObjectPtr<UItemExtension>> DefaultExtensions;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Data | MVVM")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Data | MVVM", meta = (AssetBundles = "ItemUI"))
 	TSoftClassPtr<UVM_ItemBase> ItemVMClass;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
@@ -38,7 +38,7 @@ class ITEMSYSTEM_API UPDA_Item : public UPrimaryDataAsset
 	{
 		const UCoreFramework_ItemSystem* Settings = GetDefault<UCoreFramework_ItemSystem>();
 		
-		if (Settings)
+		if (Settings && !Settings->DefaultPrimaryAssetIdItemType.IsNone())
 		{
 			return FPrimaryAssetId(Settings->DefaultPrimaryAssetIdItemType, GetFName());
 		}

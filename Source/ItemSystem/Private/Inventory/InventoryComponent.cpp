@@ -76,9 +76,15 @@ void UInventoryComponent::GetInventoryItems(TArray<UItemInstance*>& OutItems)
 	}
 }
 
-void UInventoryComponent::ReplicateItemAndExtensions(TObjectPtr<UItemInstance>& InItemInstance)
+void UInventoryComponent::ReplicateItemAndExtensions(UItemInstance* InItemInstance)
 {
 	AddReplicatedSubObject(InItemInstance);
+	
+	if (!InItemInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UInventoryComponent::ReplicateItemAndExtensions: InItemInstance is null"));
+		return;
+	}
 	
 	for (UExtension* Ext : InItemInstance->Execute_GetExtensions_BP(InItemInstance))
 	{
@@ -90,9 +96,15 @@ void UInventoryComponent::ReplicateItemAndExtensions(TObjectPtr<UItemInstance>& 
 	
 }
 
-void UInventoryComponent::RemoveReplicatedItemAndExtensions(TObjectPtr<UItemInstance>& InItemInstance)
+void UInventoryComponent::RemoveReplicatedItemAndExtensions(UItemInstance* InItemInstance)
 {
 	RemoveReplicatedSubObject(InItemInstance);
+	
+	if (!InItemInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UInventoryComponent::RemoveReplicatedItemAndExtensions: InItemInstance is null"));
+		return;
+	}
 	
 	for (UExtension* Ext : InItemInstance->Execute_GetExtensions_BP(InItemInstance))
 	{
@@ -291,6 +303,8 @@ ESaveLoadResult UInventoryComponent::GetSaveData_Implementation(FInventorySaveDa
 		return ESaveLoadResult::Failed;
 	}
 	
+	OutSaveData = FInventorySaveData();
+	
 	OutSaveData.InventoryPDAPath = Inventory_PDA.GetPathName();
 
 	// Save items data
@@ -371,13 +385,43 @@ ESaveLoadResult UInventoryComponent::LoadFromSaveData_Implementation(const FInve
 		return ESaveLoadResult::Failed;
 	}
 	
+	// Clear all items
+	if (!InventoryContainer.Entries.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UInventoryComponent::LoadFromSaveData_Implementation: InventoryContainer is not empty | Clearing all entries"));
+
+		TArray<UItemInstance*> ToRemove;
+		for (const auto& Entry : InventoryContainer.Entries)
+		{
+			if (Entry.ItemInstance) 
+			{
+				ToRemove.Add(Entry.ItemInstance);
+			}
+		}
+		for (UItemInstance* Item : ToRemove)
+		{
+			RemoveReplicatedItemAndExtensions(Item);
+		}
+		InventoryContainer.RemoveAllEntries();
+	}
+	
+	// Clear all extensions
+	if (!InventoryExtensionSerializer.Entries.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UInventoryComponent::LoadFromSaveData_Implementation: InventoryExtensionSerializer is not empty | Clearing all entries"));
+		
+		Execute_RemoveAllExtensions(this);
+	}
+	
+	UPDA_Inventory* LoadedPDA = nullptr;
+	
 	if (UItemFactorySubsystem* ItemFactory = GetWorld()->GetGameInstance()->GetSubsystem<UItemFactorySubsystem>())
 	{
-		Inventory_PDA = ItemFactory->CreatePDAFromString_Inventory(InSaveData.InventoryPDAPath);
+		LoadedPDA = ItemFactory->CreatePDAFromString_Inventory(InSaveData.InventoryPDAPath);
 		
-		if (!Inventory_PDA)
+		if (!LoadedPDA)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UInventoryComponent::LoadFromSaveData_Implementation: Failed to load InventoryPDA from path %s"), *InSaveData.InventoryPDAPath);
+			UE_LOG(LogTemp, Warning, TEXT("UInventoryComponent::LoadFromSaveData_Implementation: Failed to load PDA from %s"), *InSaveData.InventoryPDAPath);
 			
 			if (OnInventoryLoading.IsBound())
 			{
@@ -386,6 +430,18 @@ ESaveLoadResult UInventoryComponent::LoadFromSaveData_Implementation(const FInve
 			
 			return ESaveLoadResult::Failed;
 		}
+		
+		/*
+		 * Local variables to hold extensions and items to load.
+		 * This is done to ensure that if any part of the loading process fails, we can handle it gracefully without leaving the inventory in a partially loaded state.
+		 */
+		
+		TArray<UExtension*> ExtensionsToLoad;
+		
+		TArray<UExtension*> DefaultExtensionsToLoad;
+		
+		TArray<FInventoryEntry> EntriesToLoad;
+		
 		
 		// Load extensions data
 		for (const auto& ExtensionData : InSaveData.ExtensionsData)
@@ -420,11 +476,11 @@ ESaveLoadResult UInventoryComponent::LoadFromSaveData_Implementation(const FInve
 			
 			NewExtension->LoadFromSaveData(ExtensionData);
 			
-			Execute_AddExtensionInstance(this, NewExtension);
+			ExtensionsToLoad.Add(NewExtension);
 		}
 		
 		// Load default extensions from the Inventory_PDA
-		for (const auto& DefaultExtension : Inventory_PDA->DefaultExtensions)
+		for (const auto& DefaultExtension : LoadedPDA->DefaultExtensions)
 		{
 			if (!DefaultExtension)
 			{
@@ -433,10 +489,9 @@ ESaveLoadResult UInventoryComponent::LoadFromSaveData_Implementation(const FInve
 				if (OnInventoryLoading.IsBound())
 				{
 					OnInventoryLoading.Broadcast(ESaveLoadResult::Corrupted);
-				
-					return ESaveLoadResult::Corrupted;
 				}
 				
+				return ESaveLoadResult::Corrupted;
 			}
 			
 			UInventoryExtension* NewExtension = DuplicateObject<UInventoryExtension>(DefaultExtension, this);
@@ -448,12 +503,12 @@ ESaveLoadResult UInventoryComponent::LoadFromSaveData_Implementation(const FInve
 				if (OnInventoryLoading.IsBound())
 				{
 					OnInventoryLoading.Broadcast(ESaveLoadResult::Corrupted);
-				
-					return ESaveLoadResult::Corrupted;
 				}
+				
+				return ESaveLoadResult::Corrupted;
 			}
 			
-			Execute_AddExtensionInstance(this, NewExtension);
+			DefaultExtensionsToLoad.Add(NewExtension);
 		}
 		
 		// Load items data & slots
@@ -461,8 +516,21 @@ ESaveLoadResult UInventoryComponent::LoadFromSaveData_Implementation(const FInve
 		{
 			if (!SlotData.ItemInstanceData.ItemPDAPath.IsEmpty())
 			{
+				UPDA_Item* ItemPDA = ItemFactory->CreatePDAFromString_Item(SlotData.ItemInstanceData.ItemPDAPath);
 				
-				UItemInstance* NewItemInstance = ItemFactory->CreateItemInstanceFromPDAPathName(SlotData.ItemInstanceData.ItemPDAPath, this);
+				if (!ItemPDA)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("UInventoryComponent::LoadFromSaveData_Implementation: Failed to create PDA from string %s"), *SlotData.ItemInstanceData.ItemPDAPath);
+					
+					if (OnInventoryLoading.IsBound())
+					{
+						OnInventoryLoading.Broadcast(ESaveLoadResult::Corrupted);
+					}
+					
+					return ESaveLoadResult::Corrupted;
+				}
+				
+				UItemInstance* NewItemInstance = ItemFactory->CreateItemInstanceFromPDA(ItemPDA, this);
 				
 				if (!NewItemInstance)
 				{
@@ -471,15 +539,48 @@ ESaveLoadResult UInventoryComponent::LoadFromSaveData_Implementation(const FInve
 					if (OnInventoryLoading.IsBound())
 					{
 						OnInventoryLoading.Broadcast(ESaveLoadResult::Corrupted);
-				
-						return ESaveLoadResult::Corrupted;
 					}
+					
+					return ESaveLoadResult::Corrupted;
 					
 				}
 
 				NewItemInstance->LoadFromSaveData(SlotData.ItemInstanceData);
 				
-				InventoryContainer.AddEntry(NewItemInstance, SlotData.SlotIndex, SlotData.SlotGuid);
+				FInventoryEntry NewEntry(NewItemInstance, SlotData.SlotIndex, SlotData.SlotGuid);
+				EntriesToLoad.Add(NewEntry);
+			}
+		}
+		
+		Inventory_PDA = LoadedPDA;
+		
+		if (!ExtensionsToLoad.IsEmpty())
+		{
+			for (UExtension* Extension : ExtensionsToLoad)
+			{
+				Execute_AddExtensionInstance(this, Extension);
+			}
+		}
+		
+		if (!DefaultExtensionsToLoad.IsEmpty())
+		{
+			for (UExtension* Extension : DefaultExtensionsToLoad)
+			{
+				if (Execute_FindExtension(this, Extension->GetClass()))
+				{
+					continue;
+				}
+				
+				Execute_AddExtensionInstance(this, Extension);
+			}
+		}
+		
+		if (!EntriesToLoad.IsEmpty())
+		{
+			for (const auto& Entry : EntriesToLoad)
+			{
+				InventoryContainer.AddEntry(Entry.ItemInstance, Entry.SlotIndex, Entry.EntryGuid);
+				ReplicateItemAndExtensions(Entry.ItemInstance);
 			}
 		}
 		
@@ -501,4 +602,5 @@ ESaveLoadResult UInventoryComponent::LoadFromSaveData_Implementation(const FInve
 		
 		return ESaveLoadResult::Failed;
 	}
+	
 }

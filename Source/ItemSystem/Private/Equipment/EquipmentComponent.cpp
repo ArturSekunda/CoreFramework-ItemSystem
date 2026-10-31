@@ -221,8 +221,22 @@ bool UEquipmentComponent::RemoveExtension_Implementation(UExtension* ExtensionTo
 	return true;
 }
 
-void UEquipmentComponent::GetSaveData_Implementation(FEquipmentSaveData& OutSaveData) const
+ESaveLoadResult UEquipmentComponent::GetSaveData_Implementation(FEquipmentSaveData& OutSaveData) const
 {
+	OutSaveData = FEquipmentSaveData();
+
+	if (!Equipment_PDA)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UEquipmentComponent::GetSaveData: Equipment_PDA is null"));
+		
+		if (OnEquipmentSaving.IsBound())
+		{
+			OnEquipmentSaving.Broadcast(ESaveLoadResult::Failed);
+		}
+		
+		return ESaveLoadResult::Failed;
+	}
+
 	OutSaveData.EquipmentPDAPath = Equipment_PDA.GetPathName();
 
 	for (const auto& Element : EquipmentExtensionSerializer.Entries)
@@ -231,74 +245,123 @@ void UEquipmentComponent::GetSaveData_Implementation(FEquipmentSaveData& OutSave
 		{
 			continue;
 		}
-		
-		FSaveExtensionData ExtensionData;
-			
-		Element.ExtensionInstance->GetSaveData(ExtensionData);
-			
-		OutSaveData.ExtensionsData.Add(ExtensionData);
-		
-	}
-}
 
-void UEquipmentComponent::LoadFromSaveData_Implementation(const FEquipmentSaveData& InSaveData)
-{
-	if (InSaveData.EquipmentPDAPath.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Item PDAPath Empty"));
-		return;
+		FSaveExtensionData ExtensionData;
+		Element.ExtensionInstance->GetSaveData(ExtensionData);
+		OutSaveData.ExtensionsData.Add(ExtensionData);
 	}
 	
-	if (UItemFactorySubsystem* ItemFactorySubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UItemFactorySubsystem>())
+	if (OnEquipmentSaving.IsBound())
 	{
-		UPDA_Equipment* LoadedPDA = ItemFactorySubsystem->CreatePDAFromString_Equipment(InSaveData.EquipmentPDAPath);
-		
-		if (!LoadedPDA)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to load PDA from path: %s"), *InSaveData.EquipmentPDAPath);
-			return;
-		}
-		
-		for (const FSaveExtensionData& ExtensionData : InSaveData.ExtensionsData)
-		{
-			if (!ExtensionData.ExtensionClass.IsValid())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Invalid Extension Class in Save Data"));
-				continue;
-			}
-			
-			UClass* ExtensionClass = ExtensionData.ExtensionClass.TryLoadClass<UExtension>();
-			
-			if (!ExtensionClass)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Failed to load Extension Class: %s"), *ExtensionData.ExtensionClass.ToString());
-				continue;
-			}
-			
-			UExtension* NewExtension = NewObject<UExtension>(this, ExtensionClass);
-			
-			NewExtension->LoadFromSaveData_Implementation(ExtensionData);
-			
-			Execute_AddExtensionInstance(this, NewExtension);
-		}
-		
-		for (const auto& DefaultExtension : Equipment_PDA->DefaultExtensions)
-		{
-			if (!DefaultExtension)
-			{
-				continue;
-			}
-			
-			UEquipmentExtension* NewExtension = DuplicateObject<UEquipmentExtension>(DefaultExtension, this);
-			
-			Execute_AddExtensionInstance(this, NewExtension);
-		}
-		
+		OnEquipmentSaving.Broadcast(ESaveLoadResult::Success);
 	}
-	else
+
+	return ESaveLoadResult::Success;
+}
+
+ESaveLoadResult UEquipmentComponent::LoadFromSaveData_Implementation(const FEquipmentSaveData& InSaveData)
+{
+    if (InSaveData.EquipmentPDAPath.IsEmpty())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("UEquipmentComponent::LoadFromSaveData: EquipmentPDAPath is empty"));
+    	
+    	if (OnEquipmentLoading.IsBound())
+    	{
+    		OnEquipmentLoading.Broadcast(ESaveLoadResult::Failed);
+    	}
+    	
+        return ESaveLoadResult::Failed;
+    }
+
+    UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	
+    UItemFactorySubsystem* ItemFactory = GI ? GI->GetSubsystem<UItemFactorySubsystem>() : nullptr;
+    if (!ItemFactory)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("UEquipmentComponent::LoadFromSaveData: ItemFactorySubsystem not found"));
+    	
+    	if (OnEquipmentLoading.IsBound())
+    	{
+    		OnEquipmentLoading.Broadcast(ESaveLoadResult::Failed);
+    	}
+    	
+        return ESaveLoadResult::Failed;
+    }
+
+    UPDA_Equipment* LoadedPDA = ItemFactory->CreatePDAFromString_Equipment(InSaveData.EquipmentPDAPath);
+	
+    if (!LoadedPDA)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("UEquipmentComponent::LoadFromSaveData: Failed to load PDA from %s"), *InSaveData.EquipmentPDAPath);
+    	
+    	if (OnEquipmentLoading.IsBound())
+    	{
+    		OnEquipmentLoading.Broadcast(ESaveLoadResult::Failed);
+    	}
+    	
+        return ESaveLoadResult::Failed;
+    }
+	
+
+	TArray<UExtension*> ExtensionsToLoad;
+    
+    for (UEquipmentExtension* DefaultExtension : LoadedPDA->DefaultExtensions)
+    {
+        if (!DefaultExtension)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("UEquipmentComponent::LoadFromSaveData: DefaultExtension is null"));
+            continue;
+        }
+
+        UEquipmentExtension* NewExtension = DuplicateObject<UEquipmentExtension>(DefaultExtension, this);
+        if (!NewExtension)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("UEquipmentComponent::LoadFromSaveData: DuplicateObject failed"));
+        	
+        	if (OnEquipmentLoading.IsBound())
+			{
+				OnEquipmentLoading.Broadcast(ESaveLoadResult::Corrupted);
+			}
+        	
+            return ESaveLoadResult::Corrupted;
+        }
+
+        if (NewExtension->bShouldBeSaved)
+        {
+            for (const FSaveExtensionData& Saved : InSaveData.ExtensionsData)
+            {
+                if (Saved.ExtensionClass.TryLoadClass<UExtension>() == NewExtension->GetClass())
+                {
+                    NewExtension->LoadFromSaveData(Saved);
+                    break;
+                }
+            }
+        }
+
+        ExtensionsToLoad.Add(NewExtension);
+    }
+	
+	Equipment_PDA = LoadedPDA;
+	
+	// Clear all existing extensions before loading new ones
+	if (!EquipmentExtensionSerializer.Entries.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ItemFactorySubsystem not found"));
-		return;
+		Execute_RemoveAllExtensions(this);
 	}
+	
+	if (!ExtensionsToLoad.IsEmpty())
+	{
+		for (UExtension* Extension : ExtensionsToLoad)
+		{
+			Execute_AddExtensionInstance(this, Extension);
+		}
+	}
+	
+	if (OnEquipmentLoading.IsBound())
+	{
+		OnEquipmentLoading.Broadcast(ESaveLoadResult::Success);
+	}
+
+    return ESaveLoadResult::Success;
 }
 

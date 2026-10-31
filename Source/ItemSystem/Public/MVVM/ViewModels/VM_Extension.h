@@ -1,4 +1,4 @@
-﻿// 
+﻿// CoreFramework Item System. Copyright Artur "Darkowy" Sekunda. All Rights Reserved.
 
 #pragma once
 
@@ -23,4 +23,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Item MVVM")
 	virtual void InitializeVMExtension(UExtension* InExtension);
+	
+	UFUNCTION(BlueprintCallable, Category = "Item MVVM")
+	virtual void Deinitialize();
+	
+	UExtension* GetExtension() const { return Extension_Holder.Get(); }
 };

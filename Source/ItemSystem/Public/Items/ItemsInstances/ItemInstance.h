@@ -43,7 +43,7 @@ class ITEMSYSTEM_API UItemInstance : public UObject, public IExtensionContainer
 	/*
 	 * Check ItemsData/EditableItemData.h for more info.
 	 */
-	UPROPERTY(Replicated, SaveGame, EditDefaultsOnly, BlueprintReadOnly, Category = "Item | Properties")
+	UPROPERTY(Replicated, SaveGame, EditDefaultsOnly, BlueprintReadOnly, Category = "Item | Properties", SaveGame)
 	FEditableItemBaseData EditableBaseData = FEditableItemBaseData();
 	
 	/*
